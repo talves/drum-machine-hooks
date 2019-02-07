@@ -1,0 +1,25 @@
+body {
+  background-color: rgb(238, 236, 209)
+}
+
+.instruction__textbox {
+  display: block;
+  margin: auto;
+  padding-top: 10px;
+  width: 500px;
+}
+
+.footer__container  {
+  display: block;
+  margin: auto;
+}
+
+.footer__textbox {
+  text-align: center;
+  font-style: italic;
+}
+
+@font-face {
+ font-family: raptor;
+ src: url('./raptor_sans_font_by_rotweiler83.ttf');
+}
