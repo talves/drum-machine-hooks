@@ -1,5 +1,6 @@
 {
-  "name": "drum-machine",
+  "name": "drum-machine-hooks",
+  "description": "The drum machine rewritten using react hooks",
   "version": "0.1.0",
   "private": true,
   "dependencies": {

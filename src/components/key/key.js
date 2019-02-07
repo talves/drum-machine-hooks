@@ -1,87 +1,89 @@
-import React from 'react';
+import React, { useReducer, useEffect } from 'react';
 import '../../styles/key.css';
 
-class Key extends React.Component {
-  state = {
-    lightup: false,
-    looping: false,
-    loopID: null
-  };
-  // stopLoop = () => {
-  //   if (this.state.looping) clearInterval();
-  // }
-  playKey = () => {
-    const audio = new Audio(this.props.sound);
+function Key({ undoReset, onScreen, name, sound, loop, bpm, letter, clear }) {
+  const [state, setState] = useReducer(
+    (state, newState) => ({...state, ...newState}),
+    { lightup: false, looping: loop, loopID: null, interval: 60000 / bpm },
+  )
+  const lightOn = () => {
+    setState({lightup: true});
+    // onScreen function defined in app.js - changes the parent's 'display' state to the name of the key that was just pressed
+    onScreen(name);
+  }
+  const lightOff = () => {
+    setState({lightup: false});
+  }
+  const playKey = () => {
+    const audio = new Audio(sound);
     audio.type = 'audio/wav';
     // if key is already looping, then pressing again should stop the loop (assigned to the key's loopID state)
-    if (this.state.looping) {
-      clearInterval(this.state.loopID)
-      this.setState({looping: false});
+    if (state.looping && state.loopID) {
+      clearInterval(state.loopID)
+      setState({looping: false});
     }
     // if parent passes loop boolean prop - sound plays on a loop/interval
-    else if (this.props.loop) {
-      this.lightOn();
+    else if (loop) {
+      lightOn();
       audio.play();
-      this.setState({looping: true, loopID: setInterval(function(){
+      setState({looping: true, loopID: setInterval(function(){
         audio.play()
-      }, 60000/this.props.bpm)});
+      }, state.interval)});
     }
     else audio.play();
-  };
-  lightOn = () => {
-    this.setState(() => ({lightup: true}));
-    // onScreen function defined in app.js - changes the parent's 'display' state to the name of the key that was just pressed
-    this.props.onScreen(this.props.name);
-  };
-  lightOff = () => {
-    this.setState(() => ({lightup: false}));
-  };
-  mouseDown = () => {
-    this.lightOn();
-    this.playKey();
   }
-  mouseUp = () => {
-    if (!this.state.looping) this.lightOff();
+  const mouseDown = () => {
+    lightOn()
+    playKey()
   }
-  keyDown = (e) => {if (e.key === this.props.letter.toLowerCase()) {
-    this.lightOn();
-    this.playKey();
-  }}
-  keyUp = (e) => {
-    if (!this.state.looping && e.key === this.props.letter.toLowerCase()) this.lightOff();
+  const mouseUp = () => {
+    if (!state.looping) lightOff()
   }
-  componentDidMount() {
-    document.addEventListener('keydown', this.keyDown);
-    document.addEventListener('keyup', this.keyUp);
+  const onKeyDown = (e) => {
+    if (e.key === letter.toLowerCase()) mouseDown()
   }
-  // need to remove event listeners on component unmount to prevent memory leaks
-  componentWillUnmount() {
-    document.removeEventListener('keydown', this.keyDown);
-    document.removeEventListener('keyup', this.keyUp);
-  }
-  componentDidUpdate(prevProps) {
-    // not sure if this is the best way to change the interval on bpm change?
-    if (this.props.bpm !== prevProps.bpm && this.state.looping) {
-      clearInterval(this.state.loopID);
-      const audio = new Audio(this.props.sound);
-      audio.type = 'audio/wav';
-      this.setState({loopID: setInterval(function(){
-        audio.play()
-      }, 60000/this.props.bpm)})
+  useEffect(() => {
+    function keyDown(e) {
+      if (e.key === letter.toLowerCase()) mouseDown()
     }
-    else if (this.props.clear !== prevProps.clear && this.props.clear) {
-      clearInterval(this.state.loopID);
-      this.lightOff();
-      this.props.undoReset();
+    document.addEventListener('keydown', keyDown)
+    return () => document.removeEventListener('keydown', keyDown);
+  }, [])
+  useEffect(() => {
+    function keyUp(e) {
+      if (e.key === letter.toLowerCase()) {
+        mouseUp()
+      }
     }
-  }
-  render() {
-    return (<div className='key__container'>
-      <button className={`key__button ${this.state.lightup && 'key__button--lit'}`} onMouseDown={this.mouseDown} onMouseUp={this.mouseUp} onKeyPress={this.keyDown}>{this.props.letter}</button>
-      <audio className="clip" id={this.props.letter}></audio>
-      </div>
+    document.addEventListener('keyup', keyUp)
+    return () => document.removeEventListener('keyup', keyUp);
+  }, [])
+
+  useEffect(() => {
+    setState({interval: 60000 / bpm})
+    // if (state.looping) {
+    //   clearInterval(state.loopID);
+    //   const audio = new Audio(sound);
+    //   audio.type = 'audio/wav';
+    //   setState({
+    //     loopID: setInterval(function () {
+    //       audio.play()
+    //     }, state.interval)
+    //   })
+    // }
+  }, [bpm])
+  useEffect(() => {
+    clearInterval(state.loopID)
+    lightOff()
+    undoReset()
+  }, [clear])
+
+  return (
+    <div className='key__container'>
+      <button title={state.interval/1000} text className={`key__button ${state.lightup && 'key__button--lit'}`} onMouseDown={mouseDown} onMouseUp={mouseUp} onKeyPress={onKeyDown}>{letter}</button>
+      <audio className="clip" id={letter}></audio>
+    </div>
     )
-  }
 }
 
-export default Key;
+export default Key
